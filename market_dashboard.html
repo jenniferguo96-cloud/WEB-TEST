@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:18px;overflow-x:hidden}
+
+/* TOPBAR */
+.topbar{background:#0a0f2e;color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.logo{font-size:22px;font-weight:800;letter-spacing:1px;color:#ffd700}
+.dinfo{font-size:14px;color:#aaa;text-align:right;line-height:1.5}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;margin-right:5px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.tabs{display:flex;gap:4px}
+.tb{padding:8px 18px;border:none;border-radius:5px;cursor:pointer;font-size:16px;font-weight:700;background:rgba(255,255,255,.1);color:#ccc;transition:.2s}
+.tb.on{background:#ffd700;color:#0a0f2e}
+.tb:hover:not(.on){background:rgba(255,255,255,.2);color:#fff}
+.update-bar{background:#1a2a4a;color:#7eb8f7;font-size:13px;padding:5px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #0d1b33}
+.update-bar span{opacity:.8}
+#next-update{color:#ffd700;font-weight:700}
+
+/* PAGE */
+.pg{display:none;padding:16px;max-width:1700px;margin:0 auto}
+.pg.on{display:block}
+
+/* CARD with hover zoom */
+.card{background:#fff;border-radius:10px;padding:15px 18px;margin-bottom:13px;box-shadow:0 1px 5px rgba(0,0,0,.08);transition:transform .25s ease,box-shadow .25s ease;transform-origin:center top;will-change:transform}
+.card:hover{transform:scale(1.012);box-shadow:0 8px 32px rgba(10,15,46,.13);z-index:10;position:relative}
+.ct{font-size:18px;font-weight:800;color:#0a0f2e;border-left:4px solid #ffd700;padding-left:10px;margin-bottom:11px;display:flex;align-items:center;gap:8px}
+
+/* TABLE ROW hover */
+table{width:100%;border-collapse:collapse}
+th{background:#f7f8fc;color:#555;font-size:15px;font-weight:700;padding:9px 10px;text-align:left;border-bottom:2px solid #e8eaf0;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #f2f3f8;vertical-align:middle;font-size:16px;line-height:1.5;transition:background .15s}
+tr{transition:transform .2s ease,box-shadow .2s ease;cursor:default}
+tbody tr:hover td{background:#f0f6ff}
+tbody tr:hover{transform:translateX(4px)}
+.tw-scroll{overflow-x:auto}
+
+/* INDEX CARD hover */
+.idx-card{background:#fff;border-radius:9px;padding:11px 13px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid #ddd;border-top:3px solid transparent;transition:transform .22s ease,box-shadow .22s ease,border-color .2s;cursor:default}
+.idx-card:hover{transform:scale(1.07) translateY(-4px);box-shadow:0 10px 32px rgba(10,15,46,.18);z-index:20;position:relative}
+.idx-card.up-card{border-top-color:#c0392b}
+.idx-card.dn-card{border-top-color:#27ae60}
+.idx-name{font-size:14px;font-weight:800;color:#0a0f2e;white-space:nowrap}
+.idx-val{font-size:22px;font-weight:800;margin:3px 0 2px;line-height:1.1}
+.idx-chg{font-size:16px;font-weight:700;margin-bottom:3px}
+.idx-desc{font-size:13px;color:#777;line-height:1.45}
+.val-up{color:#c0392b}.val-dn{color:#27ae60}.val-neu{color:#888}
+.idx-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:9px}
+
+/* ANOMALY CARDS */
+.anomaly-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.anomaly-card{background:#fff;border-radius:10px;padding:13px 15px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid #e67e22;transition:transform .22s ease,box-shadow .22s ease;cursor:default;position:relative;overflow:hidden}
+.anomaly-card:hover{transform:scale(1.045) translateY(-5px);box-shadow:0 12px 36px rgba(230,126,34,.22);z-index:20}
+.anomaly-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle,rgba(230,126,34,.12),transparent);border-radius:0 10px 0 60px}
+.anomaly-name{font-size:17px;font-weight:800;color:#0a0f2e;margin-bottom:4px}
+.anomaly-vol{font-size:14px;color:#e67e22;font-weight:700;margin-bottom:5px}
+.anomaly-stocks{margin-bottom:6px}
+.anomaly-reason{font-size:13px;color:#666;line-height:1.5;border-top:1px solid #f0f2f5;padding-top:6px;margin-top:4px}
+.anomaly-sig{display:inline-block;font-size:11px;padding:2px 7px;border-radius:10px;font-weight:700;margin-right:4px}
+.asi-bull{background:#fde8e8;color:#c0392b}
+.asi-bear{background:#e8f5e9;color:#27ae60}
+.asi-vol{background:#fff3e0;color:#e65100}
+
+/* BREADTH CHART */
+.breadth-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart-area{background:#fafbff;border-radius:8px;padding:12px;border:1px solid #e8eaf0}
+.chart-title{font-size:15px;font-weight:700;color:#0a0f2e;margin-bottom:10px}
+.bar-chart{display:flex;flex-direction:column;gap:5px}
+.day-row{display:flex;align-items:center;gap:6px;font-size:12px}
+.day-label{width:42px;color:#888;flex-shrink:0;text-align:right}
+.bar-container{flex:1;display:flex;gap:2px;height:18px;border-radius:4px;overflow:hidden}
+.bar-up{background:linear-gradient(90deg,#e74c3c,#c0392b);border-radius:3px 0 0 3px;display:flex;align-items:center;justify-content:flex-end;padding-right:3px;font-size:10px;color:#fff;font-weight:700;transition:width .5s ease;min-width:2px}
+.bar-dn{background:linear-gradient(90deg,#27ae60,#1a7a40);border-radius:0 3px 3px 0;display:flex;align-items:center;padding-left:3px;font-size:10px;color:#fff;font-weight:700;transition:width .5s ease;min-width:2px}
+.bar-flat{background:#ddd;width:8px}
+.day-sum{font-size:11px;color:#888;width:55px;flex-shrink:0}
+
+/* DISTRIBUTION */
+.dist-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:14px}
+.dist-label{width:80px;color:#555;font-weight:700;flex-shrink:0;font-size:13px}
+.dist-bar-wrap{flex:1;background:#f0f2f5;border-radius:6px;height:22px;overflow:hidden}
+.dist-bar{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:12px;font-weight:700;color:#fff;transition:width .6s ease}
+.dist-val{width:60px;text-align:right;font-size:13px;font-weight:700}
+.dist-pct{width:40px;text-align:right;font-size:12px;color:#888}
+
+/* BADGES */
+.intl{background:#e8f0ff;color:#1a4cdb;border-radius:5px;padding:2px 8px;font-size:20px;font-weight:800;white-space:nowrap}
+.cn{background:#fff0e8;color:#d94f1e;border-radius:5px;padding:2px 8px;font-size:20px;font-weight:800;white-space:nowrap}
+.sig{display:inline-block;padding:2px 8px;border-radius:4px;font-size:15px;font-weight:700;white-space:nowrap}
+.bull{background:#e8f5e9;color:#1b5e20}.bear{background:#fde8e8;color:#b71c1c}
+.neut{background:#e8eaf6;color:#1a237e}.emot{background:#fff8e1;color:#7b4f00}.mix{background:#f3e5f5;color:#4a148c}
+.tg{display:inline-block;font-size:13px;padding:2px 7px;border-radius:4px;margin:1px 2px 0 0;white-space:nowrap;transition:transform .15s,box-shadow .15s}
+.tg:hover{transform:scale(1.12);box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:5;position:relative}
+.ts{background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9}
+.tst{background:#e3f2fd;color:#1565c0;border:1px solid #bbdefb}
+.up{color:#c0392b;font-weight:700}.dn{color:#27ae60;font-weight:700}.warn{color:#e67e22;font-weight:600}
+.bar{display:inline-block;height:7px;border-radius:4px;vertical-align:middle;margin-left:4px}
+.bu{background:linear-gradient(90deg,#c0392b,#e74c3c)}.bd{background:linear-gradient(90deg,#27ae60,#2ecc71)}
+.risk{background:#fff8e1;border-left:3px solid #f39c12;border-radius:4px;padding:4px 8px;font-size:14px;color:#856404}
+.risk::before{content:'⚠ '}
+.al{display:flex;gap:9px;padding:10px 14px;border-radius:7px;margin-bottom:11px;font-size:16px;align-items:flex-start}
+.al-i{background:#e8f4fd;border:1px solid #bee5fd}
+.al-ic{font-size:18px;flex-shrink:0}
+.ptabs{display:flex;gap:5px;margin-bottom:11px}
+.ptb{padding:6px 14px;border:1px solid #ddd;border-radius:5px;cursor:pointer;font-size:15px;background:#fff;color:#666;transition:.2s}
+.ptb.on{background:#0a0f2e;color:#fff;border-color:#0a0f2e}
+.sdw{display:none}.sdw.on{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
+.g4i{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.ic{background:#fff;border-radius:9px;padding:11px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:transform .2s,box-shadow .2s}
+.ic:hover{transform:scale(1.08) translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.13)}
+.il{font-size:14px;color:#888;margin-bottom:3px}
+.iv{font-size:22px;font-weight:800;line-height:1.2}
+.ich{font-size:14px;margin-top:2px}
+.is{font-size:13px;color:#aaa;margin-top:2px}
+.rk{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:13px;font-weight:800}
+.r1{background:#ffd700;color:#000}.r2{background:#c0c0c0;color:#000}.r3{background:#cd7f32;color:#fff}.rn{background:#e8eaf6;color:#444}
+.rhi{background:#fffbeb !important}
+.cal-date{font-weight:700;color:#1a4cdb;font-size:15px;white-space:nowrap}
+.hot3{border-left:4px solid #c0392b}.hot2{border-left:4px solid #e67e22}.hot1{border-left:4px solid #3498db}
+.pred-up{color:#c0392b;font-weight:700}.pred-dn{color:#27ae60;font-weight:700}.pred-n{color:#e67e22;font-weight:700}
+.footer{text-align:center;color:#aaa;font-size:14px;padding:14px}
+
+/* REFRESH SPINNER */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #ffd700;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-left:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* DATA FLASH on update */
+@keyframes flash{0%{background:#fffde7}100%{background:transparent}}
+.data-flash{animation:flash 1s ease}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">📊 二级市场晨报 Pro</div>
+  <div class="tabs">
+    <button class="tb on" onclick="sw('ev',this)">📰 重大事件</button>
+    <button class="tb" onclick="sw('sc',this)">📈 板块领先指标</button>
+    <button class="tb" onclick="sw('in',this)">🔭 关注指标</button>
+  </div>
+  <div class="dinfo">
+    <span class="live-dot"></span><b style="color:#4caf50">实时更新</b> · 2026年5月18日 A股已收盘<br>
+    下次刷新: <span id="next-update">59:00</span> · 最后更新: <span id="last-update">16:07 BJT</span>
+  </div>
+</div>
+<div class="update-bar">
+  <span>🔄 数据自动刷新间隔：60分钟</span>
+  <span id="update-status">✅ 数据已是最新</span>
+  <span style="margin-left:auto;cursor:pointer;color:#ffd700" onclick="manualRefresh()">⚡ 立即刷新</span>
+</div>
+
+<!-- ===== PAGE 1 ===== -->
+<div id="pg-ev" class="pg on">
+<div class="card">
+  <div class="ct">🌐 过去24小时全球重大市场事件 <span style="font-size:15px;color:#888;font-weight:400">按影响力降序 · 今为交易日，覆盖过去24H</span></div>
+  <div class="tw-scroll">
+  <table>
+    <thead><tr><th style="width:28px">序</th><th style="width:86px">来源</th><th style="width:80px">性质</th><th style="width:210px">事件</th><th style="width:200px">点评</th><th style="width:155px">受益板块</th><th style="width:175px">个股参考</th><th style="width:140px">风险提示</th></tr></thead>
+    <tbody>
+      <tr class="rhi"><td><span class="rk r1">1</span></td><td><span class="intl">🌐 国际</span></td><td><span class="sig emot">情绪⚡</span></td><td><b>英伟达5/20财报倒计时</b> — 市值5.71万亿历史新高，5/16单日跌超4%，本周三盘后是全市场最大风险/机遇事件</td><td>超预期→AI产业链全线补涨；不及→A股芯片次日开盘跌停潮。今日财报前缓冲期，芯片板块情绪偏谨慎</td><td><span class="tg ts">AI芯片</span><span class="tg ts">光模块</span><span class="tg ts">HBM存储</span><span class="tg ts">数据中心供电</span></td><td><span class="tg tst">寒武纪688256</span><span class="tg tst">海光信息688041</span><span class="tg tst">中际旭创300308</span><span class="tg tst">NVDA·美</span></td><td><div class="risk">芯片板块PE 150-500x，财报不及可触发板块级杀估值</div></td></tr>
+      <tr><td><span class="rk r2">2</span></td><td><span class="intl">🌐 国际</span></td><td><span class="sig bull">✅ 利好</span></td><td><b>中美"建设性战略稳定"落地</b> — 习特会共识，黄仁勋随访，科技管控边际缓和</td><td>中美关系进入新定位，短期摩擦风险明显降低。港股科技与出口制造有望延续修复，但结构性对抗未变</td><td><span class="tg ts">中概互联</span><span class="tg ts">跨境电商</span><span class="tg ts">出口制造</span><span class="tg ts">半导体设备</span></td><td><span class="tg tst">阿里BABA</span><span class="tg tst">腾讯0700.HK</span><span class="tg tst">中芯国际688981</span><span class="tg tst">北方华创002371</span></td><td><div class="risk">历史上中美谈判多次反复，科技管控属结构性博弈</div></td></tr>
+      <tr class="rhi"><td><span class="rk r3">3</span></td><td><span class="intl">🌐 国际</span></td><td><span class="sig mix">↕ 双刃</span></td><td><b>美伊局势：油价今日+6.6%</b> — 布伦特涨至$92.8，伊朗议长被任命对华特别代表，地缘再度升温</td><td>伊朗外交动向加剧停火谈判不确定性，能源板块今日爆发，停火信号随时扭转逻辑</td><td><span class="tg ts">煤化工</span><span class="tg ts">国内油气开采</span><span class="tg ts">黄金避险</span><span class="tg ts">LNG船运</span></td><td><span class="tg tst">中国海油600938</span><span class="tg tst">中国神华601088</span><span class="tg tst">诚志股份000990</span><span class="tg tst">招商南油601219</span></td><td><div class="risk">停火协议一旦签署，油价暴跌10%+，能源板块可能跌停</div></td></tr>
+      <tr><td><span class="rk rn">4</span></td><td><span class="intl">🌐 国际</span></td><td><span class="sig bull">✅ 利好</span></td><td><b>新美联储主席凯文·沃什接任</b> — 鲍威尔5/16正式离任，沃什表态鸽派倾向，市场预期年内降息2次</td><td>鸽派立场利好流动性宽松，成长股估值扩张，黄金/有色继续受益，美元中期承压</td><td><span class="tg ts">黄金/贵金属</span><span class="tg ts">有色金属</span><span class="tg ts">成长股估值</span></td><td><span class="tg tst">山东黄金600547</span><span class="tg tst">紫金矿业601899</span><span class="tg tst">宁德时代300750</span></td><td><div class="risk">若通胀持续高企迫使加息，降息叙事将全面崩塌</div></td></tr>
+      <tr class="rhi"><td><span class="rk rn">5</span></td><td><span class="cn">🇨🇳 中国</span></td><td><span class="sig emot">情绪⚡</span></td><td><b>A股两融余额2.8万亿创历史新高</b> — 科创板史上最大并购重组（中芯国际406亿）过会</td><td>杠杆创纪录是热度信号也是风险信号。科创并购加速将抬升估值中枢，但强平压力随时爆发</td><td><span class="tg ts">券商经纪</span><span class="tg ts">科创板</span><span class="tg ts">硬科技并购</span></td><td><span class="tg tst">东方财富300059</span><span class="tg tst">中信证券600030</span><span class="tg tst">中芯国际688981</span></td><td><div class="risk">两融历史高点附近波动率急剧上升，需设置好止损线</div></td></tr>
+      <tr><td><span class="rk rn">6</span></td><td><span class="intl">🌐 国际</span></td><td><span class="sig bull">✅ 利好</span></td><td><b>谷歌I/O大会5/19-20日举行</b> — AI应用层重磅发布，AI眼镜/大模型API/云新品预期</td><td>谷歌I/O引领AI应用方向，若推出颠覆性产品将催化A股AI应用链行情</td><td><span class="tg ts">AI应用软件</span><span class="tg ts">AI眼镜/穿戴</span><span class="tg ts">云计算</span></td><td><span class="tg tst">科大讯飞002230</span><span class="tg tst">三六零601360</span><span class="tg tst">谷歌GOOG·美</span></td><td><div class="risk">若产品不及预期，AI应用板块短期回调</div></td></tr>
+      <tr class="rhi"><td><span class="rk rn">7</span></td><td><span class="cn">🇨🇳 中国</span></td><td><span class="sig bull">✅ 利好</span></td><td><b>商业航天今日爆涨</b> — SpaceX最快本周披露招股书，天线/卫星制造/商业火箭集体暴涨，今日A股核心主线</td><td>SpaceX上市预期引发商业航天估值重估，今日信维通信/中国卫通等大涨，中国版"星链"叙事强化</td><td><span class="tg ts">商业航天</span><span class="tg ts">卫星互联网</span><span class="tg ts">天线/射频</span></td><td><span class="tg tst">中国卫通601698</span><span class="tg tst">航天工程301373</span><span class="tg tst">信维通信300136</span></td><td><div class="risk">商业航天估值已有透支，情绪面驱动为主，高位追涨风险大</div></td></tr>
+      <tr><td><span class="rk rn">8</span></td><td><span class="intl">🌐 国际</span></td><td><span class="sig bear">🔴 利空</span></td><td><b>英伟达H200对华销售短期无突破</b> — 访华谈判后科技松动预期部分落空，英伟达当日盘中跌4.6%</td><td>高端AI芯片出口管制依然是核心障碍，国产算力替代叙事因此继续强化</td><td><span class="tg ts">国产算力芯片</span><span class="tg ts">EDA/IP国产化</span></td><td><span class="tg tst">寒武纪688256</span><span class="tg tst">海光信息688041</span><span class="tg tst">中科曙光603019</span></td><td><div class="risk">若H200突然解禁，国产算力股可能单日暴跌</div></td></tr>
+      <tr class="rhi"><td><span class="rk rn">9</span></td><td><span class="intl">🌐 国际</span></td><td><span class="sig bear">🔴 利空</span></td><td><b>美国PPI创2022年3月来最大涨幅</b> — 美联储加息概率升至40%（一周前仅14%）</td><td>高通胀持续压制美股估值扩张，美债收益率上行风险加大，蓝筹白马承压</td><td><span class="tg ts">通胀受益：资源/能源</span></td><td><span class="tg tst">中国铝业601600</span><span class="tg tst">云铝股份000807</span></td><td><div class="risk">若美联储意外加息，高估值板块将首当其冲受到系统性回调</div></td></tr>
+      <tr><td><span class="rk rn">10</span></td><td><span class="cn">🇨🇳 中国</span></td><td><span class="sig bull">✅ 利好</span></td><td><b>外资三个月净流入140亿美元</b> — 三年半新高，北向资金连续加仓蓝筹科技</td><td>外资持续回流是中期市场支撑核心逻辑，关注外资偏好的大盘蓝筹、消费、半导体龙头</td><td><span class="tg ts">沪深300成分</span><span class="tg ts">消费蓝筹</span><span class="tg ts">大盘科技</span></td><td><span class="tg tst">招商银行600036</span><span class="tg tst">迈瑞医疗300760</span><span class="tg tst">宁德时代300750</span></td><td><div class="risk">外资流向受全球风险偏好驱动，可快速逆转</div></td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="ct">📅 未来一个月大事日历 <span style="font-size:15px;color:#888;font-weight:400">5月18日→6月18日 · 🔴极重要 🟠重要 🔵关注</span></div>
+  <div class="tw-scroll">
+  <table>
+    <thead><tr><th style="width:100px">日期</th><th style="width:48px">重要</th><th style="width:70px">类型</th><th style="width:68px">性质</th><th>事件</th><th>影响板块与逻辑</th></tr></thead>
+    <tbody>
+      <tr class="hot3"><td class="cal-date">5月19-20日</td><td>🔴🔴🔴</td><td><span class="intl" style="font-size:14px">🌐 国际</span></td><td><span class="sig emot" style="font-size:14px">情绪/业绩</span></td><td><b>谷歌I/O大会(19-20日) + 英伟达Q1财报(20日盘后)</b></td><td>AI应用+AI算力双催化；英伟达EPS是全球最大风险事件，影响A股所有科技板块次日走向</td></tr>
+      <tr class="hot3"><td class="cal-date">5月21日</td><td>🔴🔴🔴</td><td><span class="intl" style="font-size:14px">🌐 国际</span></td><td><span class="sig bear" style="font-size:14px">利空风险</span></td><td><b>美联储4月会议纪要（北京时间5/22凌晨2:00）+ 欧元区/英国/美国5月PMI初值</b></td><td>揭示利率路径预期，若偏鹰压制成长股；PMI若走弱叠加压力</td></tr>
+      <tr class="hot2"><td class="cal-date">5月下旬</td><td>🟠🟠</td><td><span class="intl" style="font-size:14px">🌐 国际</span></td><td><span class="sig bull" style="font-size:14px">利好预期</span></td><td><b>百度/网易/蔚来/哔哩哔哩中概股财报周</b></td><td>中概Q1财报集中披露，中美缓和背景下预计整体超预期，港股/中概互联受益</td></tr>
+      <tr class="hot3"><td class="cal-date">5月底-6月初</td><td>🔴🔴🔴</td><td><span class="intl" style="font-size:14px">🌐 国际</span></td><td><span class="sig mix" style="font-size:14px">双刃</span></td><td><b>美伊停火谈判关键节点</b> — 高盛预测6月底霍尔木兹或重开</td><td>达成协议→油价暴跌→能源股崩；破裂→油价突破$110→能源/避险受益，通胀恶化</td></tr>
+      <tr class="hot2"><td class="cal-date">5月底</td><td>🟠🟠</td><td><span class="cn" style="font-size:14px">🇨🇳 中国</span></td><td><span class="sig bull" style="font-size:14px">利好预期</span></td><td><b>中国制造业PMI(5月) + 工业利润数据发布</b></td><td>4月PMI 50.1，5月若改善将强化"复苏牛"逻辑，利好中游制造/周期板块</td></tr>
+      <tr class="hot2"><td class="cal-date">6月上旬</td><td>🟠🟠</td><td><span class="intl" style="font-size:14px">🌐 国际</span></td><td><span class="sig neut" style="font-size:14px">中性偏鸽</span></td><td><b>美联储6月议息会议</b> — 沃什首次主持，鸽派预期下可能暗示降息路径</td><td>若删除鹰派表述=利好；若维持现状+偏鹰=全球成长股承压</td></tr>
+      <tr class="hot1"><td class="cal-date">6月中旬</td><td>🔵</td><td><span class="cn" style="font-size:14px">🇨🇳 中国</span></td><td><span class="sig neut" style="font-size:14px">中性</span></td><td><b>中国5月CPI/PPI数据 + OPEC+产量政策会议</b></td><td>PPI若转正强化周期股逻辑；OPEC增产将加速油价下跌，能源股承压</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+</div>
+
+<!-- ===== PAGE 2 ===== -->
+<div id="pg-sc" class="pg">
+  <div class="al al-i"><span class="al-ic">ℹ️</span><span>数据基于近期公开报道综合整理（截至5/18收盘）。精确实时数据以WIND/东方财富终端为准。</span></div>
+  <div class="ptabs">
+    <button class="ptb on" onclick="sp('7d',this)">📅 7日</button>
+    <button class="ptb" onclick="sp('30d',this)">📅 30日</button>
+    <button class="ptb" onclick="sp('90d',this)">📅 90日</button>
+  </div>
+  <div id="sd-7d" class="sdw on">
+    <div>
+      <div class="card"><div class="ct">🇺🇸 美股涨幅TOP5（7日）</div>
+        <table><thead><tr><th>排</th><th>四级赛道</th><th>代表股</th><th>涨幅</th><th>驱动逻辑</th></tr></thead><tbody>
+          <tr><td><span class="rk r1">1</span></td><td><b>AI推理芯片/ASIC</b></td><td>博通(AVGO)</td><td><span class="up">+18%</span><div class="bar bu" style="width:72px"></div></td><td>博通Q1 AI营收+106%，Q2指引同比+140%，ASIC叙事确立</td></tr>
+          <tr><td><span class="rk r2">2</span></td><td><b>HBM/NAND存储</b></td><td>美光(MU)、闪迪</td><td><span class="up">+14%</span><div class="bar bu" style="width:56px"></div></td><td>HBM超级周期确认，美光市值破8000亿，存储=AI核心基础设施</td></tr>
+          <tr><td><span class="rk r3">3</span></td><td><b>AI光互联/光模块</b></td><td>Lumentum、POET</td><td><span class="up">+12%</span><div class="bar bu" style="width:48px"></div></td><td>800G/1.6T爆发，POET单日+43%，GaAs供应链涨价共振</td></tr>
+          <tr><td><span class="rk rn">4</span></td><td><b>通用GPU算力</b></td><td>英伟达(NVDA)</td><td><span class="up">+9%</span><div class="bar bu" style="width:36px"></div></td><td>市值5.7万亿历史新高，黄仁勋访华边际利好，5/16技术性回调</td></tr>
+          <tr><td><span class="rk rn">5</span></td><td><b>AI云/超大规模AIDC</b></td><td>亚马逊(AMZN)</td><td><span class="up">+7%</span><div class="bar bu" style="width:28px"></div></td><td>AWS增速创三年新高，AI资本开支2000亿/年</td></tr>
+        </tbody></table>
+      </div>
+      <div class="card"><div class="ct">🇺🇸 美股跌幅TOP5（7日）</div>
+        <table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>跌幅</th><th>原因</th></tr></thead><tbody>
+          <tr><td><span class="rk r1">1</span></td><td><b>传统零售/消费品</b></td><td>Target(TGT)</td><td><span class="dn">-8%</span><div class="bar bd" style="width:72px"></div></td><td>油价推高物流成本，消费支出走弱预期，零售毛利承压</td></tr>
+          <tr><td><span class="rk r2">2</span></td><td><b>航空/旅游</b></td><td>联合航空(UAL)</td><td><span class="dn">-6%</span><div class="bar bd" style="width:54px"></div></td><td>油价高位推高燃油成本，中东航线中断持续影响</td></tr>
+          <tr><td><span class="rk r3">3</span></td><td><b>传统汽车制造</b></td><td>福特(F)、通用</td><td><span class="dn">-5%</span><div class="bar bd" style="width:45px"></div></td><td>欧盟汽车关税25%压制估值，新能源转型成本高企</td></tr>
+          <tr><td><span class="rk rn">4</span></td><td><b>消费金融/信用卡</b></td><td>Capital One</td><td><span class="dn">-4%</span><div class="bar bd" style="width:36px"></div></td><td>高通胀压制消费能力，坏账率风险上升预期</td></tr>
+          <tr><td><span class="rk rn">5</span></td><td><b>房地产/REITs</b></td><td>SPG、ARE</td><td><span class="dn">-3%</span><div class="bar bd" style="width:27px"></div></td><td>美债收益率高位压制REITs估值，加息风险重现</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div>
+      <div class="card"><div class="ct">🇨🇳 A股涨幅TOP5（7日）</div>
+        <table><thead><tr><th>排</th><th>三四级赛道</th><th>代表股</th><th>涨幅</th><th>驱动逻辑</th></tr></thead><tbody>
+          <tr><td><span class="rk r1">1</span></td><td><b>国产算力芯片/GPU替代</b></td><td>寒武纪、海光信息</td><td><span class="up">+22%</span><div class="bar bu" style="width:80px"></div></td><td>英伟达H200禁售+国产替代+中美缓和有望松动H20</td></tr>
+          <tr><td><span class="rk r2">2</span></td><td><b>PCB/玻璃基板/CCL</b></td><td>沪电股份、生益科技</td><td><span class="up">+17%</span><div class="bar bu" style="width:62px"></div></td><td>AI服务器PCB升级需求爆发，CCL景气度高，玻璃基板新赛道</td></tr>
+          <tr><td><span class="rk r3">3</span></td><td><b>光模块/光通信组件</b></td><td>中际旭创、新易盛</td><td><span class="up">+14%</span><div class="bar bu" style="width:51px"></div></td><td>美股Lumentum大涨次日传导，800G订单景气，镓价利好材料</td></tr>
+          <tr><td><span class="rk rn">4</span></td><td><b>国内油气开采/煤化工</b></td><td>中国海油、诚志股份</td><td><span class="up">+9%</span><div class="bar bu" style="width:33px"></div></td><td>霍尔木兹封锁持续，国内能源替代+高油价共振</td></tr>
+          <tr><td><span class="rk rn">5</span></td><td><b>人形机器人/核心零部件</b></td><td>汇川技术、绿的谐波</td><td><span class="up">+8%</span><div class="bar bu" style="width:29px"></div></td><td>科技再贷款+AI裁员催化机器人替代叙事，Optimus进展</td></tr>
+        </tbody></table>
+      </div>
+      <div class="card"><div class="ct">🇨🇳 A股跌幅TOP5（7日）</div>
+        <table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>跌幅</th><th>原因</th></tr></thead><tbody>
+          <tr><td><span class="rk r1">1</span></td><td><b>食品饮料(大众消费)</b></td><td>海天味业、伊利股份</td><td><span class="dn">-7%</span><div class="bar bd" style="width:63px"></div></td><td>资金大规模转移至科技成长，消费板块估值压缩</td></tr>
+          <tr><td><span class="rk r2">2</span></td><td><b>医药/CXO</b></td><td>药明康德、恒瑞医药</td><td><span class="dn">-5%</span><div class="bar bd" style="width:45px"></div></td><td>CXO地缘政治风险+资金流出，估值处历史偏高位</td></tr>
+          <tr><td><span class="rk r3">3</span></td><td><b>地产/建筑装饰</b></td><td>万科、保利发展</td><td><span class="dn">-4%</span><div class="bar bd" style="width:36px"></div></td><td>利率环境不确定+销售数据仍弱，地产复苏斜率偏缓</td></tr>
+          <tr><td><span class="rk rn">4</span></td><td><b>银行（股份行）</b></td><td>招商银行、平安银行</td><td><span class="dn">-3%</span><div class="bar bd" style="width:27px"></div></td><td>存款利率下调压缩息差，市场担忧净息差继续收窄</td></tr>
+          <tr><td><span class="rk rn">5</span></td><td><b>国防军工</b></td><td>中航成飞、中直股份</td><td><span class="dn">-3%</span><div class="bar bd" style="width:27px"></div></td><td>资金净流出-17.5亿，中美缓和降低短期地缘博弈溢价</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+  <div id="sd-30d" class="sdw">
+    <div>
+      <div class="card"><div class="ct">🇺🇸 美股涨幅TOP5（30日）</div><table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>涨幅</th><th>驱动逻辑</th></tr></thead><tbody><tr><td><span class="rk r1">1</span></td><td><b>HBM/AI存储全链</b></td><td>美光(MU)、西数、希捷</td><td><span class="up">+52%</span><div class="bar bu" style="width:80px"></div></td><td>HBM3e量产，AI时代存储从"边缘"到"战略核心"全面重估</td></tr><tr><td><span class="rk r2">2</span></td><td><b>CPU/高性能计算</b></td><td>英特尔(INTC)、AMD</td><td><span class="up">+38%</span><div class="bar bu" style="width:58px"></div></td><td>英特尔苹果代工协议+数据中心CPU需求复苏，估值修复弹性极大</td></tr><tr><td><span class="rk r3">3</span></td><td><b>AI推理芯片/ASIC</b></td><td>博通(AVGO)</td><td><span class="up">+32%</span><div class="bar bu" style="width:49px"></div></td><td>ASIC推理超级周期起步，2027年千亿目标引发重估</td></tr><tr><td><span class="rk rn">4</span></td><td><b>通用GPU</b></td><td>英伟达(NVDA)</td><td><span class="up">+26%</span><div class="bar bu" style="width:40px"></div></td><td>市值突破5.5万亿，沙特AI万亿合作，全球AIDC扩张</td></tr><tr><td><span class="rk rn">5</span></td><td><b>大宗原油/能源</b></td><td>埃克森、雪佛龙</td><td><span class="up">+18%</span><div class="bar bu" style="width:28px"></div></td><td>布伦特现货一度达$150，能源股盈利暴增</td></tr></tbody></table></div>
+      <div class="card"><div class="ct">🇺🇸 美股跌幅TOP5（30日）</div><table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>跌幅</th><th>原因</th></tr></thead><tbody><tr><td><span class="rk r1">1</span></td><td><b>传统零售/百货</b></td><td>TGT、M</td><td><span class="dn">-18%</span><div class="bar bd" style="width:80px"></div></td><td>高油价侵蚀消费支出，电商竞争压力不减</td></tr><tr><td><span class="rk r2">2</span></td><td><b>航空/邮轮</b></td><td>DAL、RCL</td><td><span class="dn">-14%</span><div class="bar bd" style="width:62px"></div></td><td>航油成本飙升，中东航线中断，旅行需求受压</td></tr><tr><td><span class="rk r3">3</span></td><td><b>REITs/商业地产</b></td><td>VNQ、ARE</td><td><span class="dn">-11%</span><div class="bar bd" style="width:49px"></div></td><td>利率高位压估值，商业地产需求疲弱</td></tr><tr><td><span class="rk rn">4</span></td><td><b>传统汽车</b></td><td>F、GM</td><td><span class="dn">-9%</span><div class="bar bd" style="width:40px"></div></td><td>欧盟25%关税+电动化成本压力，传统车估值收缩</td></tr><tr><td><span class="rk rn">5</span></td><td><b>生物医药/制药</b></td><td>PFE、MRNA</td><td><span class="dn">-7%</span><div class="bar bd" style="width:31px"></div></td><td>医改政策不确定性+资金转向AI，估值持续承压</td></tr></tbody></table></div>
+    </div>
+    <div>
+      <div class="card"><div class="ct">🇨🇳 A股涨幅TOP5（30日）</div><table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>涨幅</th><th>驱动逻辑</th></tr></thead><tbody><tr><td><span class="rk r1">1</span></td><td><b>国产算力芯片全链</b></td><td>寒武纪、海光、江波龙</td><td><span class="up">+65%</span><div class="bar bu" style="width:80px"></div></td><td>年内90+翻倍股，国产算力替代+中美科技缓和双重驱动</td></tr><tr><td><span class="rk r2">2</span></td><td><b>光模块/光通信全链</b></td><td>中际旭创、新易盛、博敏</td><td><span class="up">+44%</span><div class="bar bu" style="width:54px"></div></td><td>800G出货爆发，Lumentum连涨，镓价上涨利好材料环节</td></tr><tr><td><span class="rk r3">3</span></td><td><b>AI服务器ODM/PCB</b></td><td>沪电股份、生益科技</td><td><span class="up">+35%</span><div class="bar bu" style="width:43px"></div></td><td>全球AI服务器采购量持续高增，A股PCB受益订单溢出</td></tr><tr><td><span class="rk rn">4</span></td><td><b>低空经济/无人机</b></td><td>纵横股份、道通智能</td><td><span class="up">+28%</span><div class="bar bu" style="width:34px"></div></td><td>5月低空经济博览会政策催化，监管落地加速</td></tr><tr><td><span class="rk rn">5</span></td><td><b>黄金/贵金属矿</b></td><td>山东黄金、紫金矿业</td><td><span class="up">+22%</span><div class="bar bu" style="width:27px"></div></td><td>避险需求+美元弱势+央行购金共振，金价长牛</td></tr></tbody></table></div>
+      <div class="card"><div class="ct">🇨🇳 A股跌幅TOP5（30日）</div><table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>跌幅</th><th>原因</th></tr></thead><tbody><tr><td><span class="rk r1">1</span></td><td><b>油气开采服务</b></td><td>中曼石油、海油工程</td><td><span class="dn">-15%</span><div class="bar bd" style="width:80px"></div></td><td>OPEC增产+停火预期导致油价阶段性下挫，服务订单增量存疑</td></tr><tr><td><span class="rk r2">2</span></td><td><b>食品饮料/大众消费</b></td><td>海天味业、安琪酵母</td><td><span class="dn">-12%</span><div class="bar bd" style="width:64px"></div></td><td>资金极度向科技成长集中，防御性消费估值持续压缩</td></tr><tr><td><span class="rk r3">3</span></td><td><b>传统零售/商业</b></td><td>王府井、步步高</td><td><span class="dn">-10%</span><div class="bar bd" style="width:53px"></div></td><td>线下消费复苏慢于预期，电商竞争持续</td></tr><tr><td><span class="rk rn">4</span></td><td><b>地产/物业</b></td><td>万科、碧桂园</td><td><span class="dn">-8%</span><div class="bar bd" style="width:43px"></div></td><td>政策托而不涨，基本面改善缓慢，资金弃守</td></tr><tr><td><span class="rk rn">5</span></td><td><b>猪肉/农牧</b></td><td>牧原股份、温氏股份</td><td><span class="dn">-7%</span><div class="bar bd" style="width:37px"></div></td><td>猪价触底，供给去化慢，2026年猪周期尚未反转</td></tr></tbody></table></div>
+    </div>
+  </div>
+  <div id="sd-90d" class="sdw">
+    <div>
+      <div class="card"><div class="ct">🇺🇸 美股涨幅TOP5（90日）</div><table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>涨幅</th><th>驱动逻辑</th></tr></thead><tbody><tr><td><span class="rk r1">1</span></td><td><b>CPU/旧派半导体翻身</b></td><td>英特尔(INTC)、AMD</td><td><span class="up">+200%+</span><div class="bar bu" style="width:80px"></div></td><td>苹果代工+AI CPU需求+从底部暴涨，2026最大逆袭</td></tr><tr><td><span class="rk r2">2</span></td><td><b>AI存储全链</b></td><td>美光、西数、希捷</td><td><span class="up">+130%</span><div class="bar bu" style="width:68px"></div></td><td>存储从"平庸"变"战略稀缺"，涨幅已超英伟达</td></tr><tr><td><span class="rk r3">3</span></td><td><b>AI推理芯片/ASIC</b></td><td>博通(AVGO)</td><td><span class="up">+85%</span><div class="bar bu" style="width:44px"></div></td><td>推理市场扩大，ASIC替代GPU趋势确立，千亿美元赛道</td></tr><tr><td><span class="rk rn">4</span></td><td><b>通用GPU算力</b></td><td>英伟达(NVDA)</td><td><span class="up">+65%</span><div class="bar bu" style="width:34px"></div></td><td>Blackwell供不应求，沙特AI万亿合作，全球AIDC爆发</td></tr><tr><td><span class="rk rn">5</span></td><td><b>大宗原油/能源安全</b></td><td>埃克森、雪佛龙</td><td><span class="up">+42%</span><div class="bar bu" style="width:22px"></div></td><td>美伊战争爆发，油价中枢大幅上移，能源盈利暴增</td></tr></tbody></table></div>
+      <div class="card"><div class="ct">🇺🇸 美股跌幅TOP5（90日）</div><table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>跌幅</th><th>原因</th></tr></thead><tbody><tr><td><span class="rk r1">1</span></td><td><b>传统零售百货</b></td><td>西尔斯、Macy's</td><td><span class="dn">-28%</span><div class="bar bd" style="width:80px"></div></td><td>通胀持续侵蚀消费，AI替代物流人力，结构性衰退</td></tr><tr><td><span class="rk r2">2</span></td><td><b>REITs商业地产</b></td><td>SPG、VNQ</td><td><span class="dn">-22%</span><div class="bar bd" style="width:63px"></div></td><td>高利率持续压估值，办公空置率仍高</td></tr><tr><td><span class="rk r3">3</span></td><td><b>航空/邮轮/旅游</b></td><td>DAL、CCL</td><td><span class="dn">-18%</span><div class="bar bd" style="width:51px"></div></td><td>战时油价+中东航线受阻，旅行成本大幅上升</td></tr><tr><td><span class="rk rn">4</span></td><td><b>生物医药/制药</b></td><td>PFE、MRNA</td><td><span class="dn">-14%</span><div class="bar bd" style="width:40px"></div></td><td>药价政策压力+AI替代部分研发，转型期估值困境</td></tr><tr><td><span class="rk rn">5</span></td><td><b>传统汽车</b></td><td>F、GM、Stellantis</td><td><span class="dn">-11%</span><div class="bar bd" style="width:31px"></div></td><td>关税+电动化成本+高油价冲击消费信心</td></tr></tbody></table></div>
+    </div>
+    <div>
+      <div class="card"><div class="ct">🇨🇳 A股涨幅TOP5（90日）</div><table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>涨幅</th><th>驱动逻辑</th></tr></thead><tbody><tr><td><span class="rk r1">1</span></td><td><b>国产算力芯片/AI整体</b></td><td>寒武纪、海光、兆易创新</td><td><span class="up">+250%+</span><div class="bar bu" style="width:80px"></div></td><td>出口管制→国产替代→DeepSeek崛起→稀缺溢价，全年最强主线</td></tr><tr><td><span class="rk r2">2</span></td><td><b>光模块/光通信/GaAs</b></td><td>中际旭创、新易盛、天孚通信</td><td><span class="up">+160%</span><div class="bar bu" style="width:68px"></div></td><td>Lumentum连涨13月，A股光模块全球份额超60%，镓管制护城河</td></tr><tr><td><span class="rk r3">3</span></td><td><b>能源安全/煤化工/LNG</b></td><td>中国神华、中国海油</td><td><span class="up">+65%</span><div class="bar bu" style="width:34px"></div></td><td>美伊战争推动能源安全重估，国内能源自主成国策</td></tr><tr><td><span class="rk rn">4</span></td><td><b>人形机器人/核心零部件</b></td><td>汇川技术、绿的谐波</td><td><span class="up">+55%</span><div class="bar bu" style="width:29px"></div></td><td>Optimus量产、国内厂商接单，AI+机器人时代加速</td></tr><tr><td><span class="rk rn">5</span></td><td><b>黄金/贵金属</b></td><td>山东黄金、紫金矿业</td><td><span class="up">+48%</span><div class="bar bu" style="width:25px"></div></td><td>黄金触$4700，地缘+弱美元+央行购金三重共振</td></tr></tbody></table></div>
+      <div class="card"><div class="ct">🇨🇳 A股跌幅TOP5（90日）</div><table><thead><tr><th>排</th><th>板块</th><th>代表股</th><th>跌幅</th><th>原因</th></tr></thead><tbody><tr><td><span class="rk r1">1</span></td><td><b>猪肉/农牧/饲料</b></td><td>牧原股份、温氏股份</td><td><span class="dn">-20%</span><div class="bar bd" style="width:80px"></div></td><td>猪价触底，去产能进度慢，2026年盈利难见反转</td></tr><tr><td><span class="rk r2">2</span></td><td><b>地产/物业/建材</b></td><td>万科、保利、海螺</td><td><span class="dn">-16%</span><div class="bar bd" style="width:64px"></div></td><td>政策托底但市场信心未恢复，高库存压制股价</td></tr><tr><td><span class="rk r3">3</span></td><td><b>大众消费/食品饮料</b></td><td>海天、中炬、安琪</td><td><span class="dn">-13%</span><div class="bar bd" style="width:52px"></div></td><td>资金极度外流，消费复苏慢于预期，估值重新压缩</td></tr><tr><td><span class="rk rn">4</span></td><td><b>传统IT软件/外包</b></td><td>东软集团、中软国际</td><td><span class="dn">-10%</span><div class="bar bd" style="width:40px"></div></td><td>AI颠覆传统IT服务，竞争力持续弱化</td></tr><tr><td><span class="rk rn">5</span></td><td><b>银行（股份行）</b></td><td>平安银行、浦发银行</td><td><span class="dn">-8%</span><div class="bar bd" style="width:32px"></div></td><td>息差持续收窄，不良贷款压力，估值修复预期落空</td></tr></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- 对标 -->
+  <div class="card">
+    <div class="ct">🔗 以美股为领先指标：A股对标预判（20家 · 按预判涨幅降序）</div>
+    <div class="tw-scroll">
+    <table>
+      <thead><tr><th style="width:26px">序</th><th style="width:115px">美股标的</th><th style="width:58px">近期</th><th style="width:125px">A股对标</th><th style="width:44px">关联度</th><th>核心关联逻辑</th><th style="width:80px">预判</th><th style="width:100px">关键风险</th></tr></thead>
+      <tbody>
+        <tr class="rhi"><td>1</td><td><b>Lumentum/Coherent</b><br><span style="font-size:13px;color:#888">AI光互联</span></td><td><span class="up">连涨13月</span></td><td><span class="tg tst">中际旭创300308</span><span class="tg tst">新易盛300502</span><span class="tg tst">天孚通信300394</span></td><td>⭐⭐⭐⭐⭐</td><td>A股光模块全球份额超60%，美股涨1%次日A股跟涨0.6-0.8%，是最强领先指标。800G景气+镓价护城河</td><td><span class="pred-up">📈 强烈看多</span></td><td>估值偏高建议回调买；镓出口松动是尾部风险</td></tr>
+        <tr><td>2</td><td><b>AMD</b><br><span style="font-size:13px;color:#888">CPU+GPU</span></td><td><span class="up">+38%·30d</span></td><td><span class="tg tst">海光信息688041</span></td><td>⭐⭐⭐⭐</td><td>海光基于AMD x86授权，是A股最直接映射。AMD超预期→海光次日跟涨，具备国产替代额外溢价</td><td><span class="pred-up">📈 强烈看多</span></td><td>AMD授权若被撤销将引发系统性风险</td></tr>
+        <tr class="rhi"><td>3</td><td><b>应用材料(AMAT)</b><br><span style="font-size:13px;color:#888">半导体设备</span></td><td><span class="up">+20%·30d</span></td><td><span class="tg tst">北方华创002371</span><span class="tg tst">中微公司688012</span><span class="tg tst">华海清科688120</span></td><td>⭐⭐⭐⭐⭐</td><td>AMAT→全球晶圆厂资本开支→国产设备替代需求。出口管制使国内晶圆厂必须国产，A股设备具备独立行情</td><td><span class="pred-up">📈 强烈看多</span></td><td>国产设备与AMAT有技术代差，良率爬坡期存不确定性</td></tr>
+        <tr><td>4</td><td><b>AXT Inc.(AXTI)</b><br><span style="font-size:13px;color:#888">GaAs衬底</span></td><td><span class="up">镓价+120%</span></td><td><span class="tg tst">云南锗业002428</span><span class="tg tst">乾照光电300102</span></td><td>⭐⭐⭐⭐</td><td>AXT主要基地在北京，受益中国低成本镓。A股云南锗业是镓/锗战略金属核心持有者，具有唯一性定价权</td><td><span class="pred-up">📈 强烈看多</span></td><td>中美缓和若导致管制松绑，相关股票可能单日暴跌</td></tr>
+        <tr class="rhi"><td>5</td><td><b>英伟达(NVDA)</b><br><span style="font-size:13px;color:#888">GPU训练芯片</span></td><td><span class="up">+65%·90d</span></td><td><span class="tg tst">寒武纪688256</span><span class="tg tst">海光信息688041</span></td><td>⭐⭐⭐⭐⭐</td><td>英伟达禁售→国产算力需求爆发。英伟达每创新高次日A股芯片通常跟涨。5/20财报是本周最大催化</td><td><span class="pred-up">📈 偏多</span></td><td>PE 150-500x，财报不及预期触发连锁跌停</td></tr>
+        <tr><td>6</td><td><b>美光(MU)</b><br><span style="font-size:13px;color:#888">HBM/NAND</span></td><td><span class="up">+130%·90d</span></td><td><span class="tg tst">江波龙301308</span><span class="tg tst">德明利001309</span></td><td>⭐⭐⭐</td><td>全球HBM需求爆发带动NAND价格上涨，A股存储设计受益价格周期，技术代差明显</td><td><span class="pred-up">📈 偏多</span></td><td>仅受益NAND价格周期，非直接HBM受益者</td></tr>
+        <tr class="rhi"><td>7</td><td><b>英特尔(INTC)</b><br><span style="font-size:13px;color:#888">CPU制造</span></td><td><span class="up">+200%·90d</span></td><td><span class="tg tst">龙芯中科688047</span></td><td>⭐⭐⭐</td><td>英特尔苹果代工+数据中心CPU需求，预示服务器CPU国产替代窗口加速。龙芯是A股最直接对标</td><td><span class="pred-up">📈 偏多</span></td><td>龙芯市值小流动性差，情绪主导易爆炒后回调</td></tr>
+        <tr><td>8</td><td><b>亚马逊(AMZN)</b><br><span style="font-size:13px;color:#888">AI云计算</span></td><td><span class="up">+27%·单月</span></td><td><span class="tg tst">阿里巴巴BABA</span><span class="tg tst">金山云037</span></td><td>⭐⭐⭐⭐</td><td>AWS季度增速创三年新高→中国云同步受益AI训练/推理需求。港股比A股更敏感</td><td><span class="pred-up">📈 看多</span></td><td>国内云市场竞争激烈，价格战压缩毛利率</td></tr>
+        <tr class="rhi"><td>9</td><td><b>巴里克黄金(GOLD)</b><br><span style="font-size:13px;color:#888">黄金矿业</span></td><td><span class="up">+25%·30d</span></td><td><span class="tg tst">山东黄金600547</span><span class="tg tst">紫金矿业601899</span></td><td>⭐⭐⭐⭐⭐</td><td>黄金价格是A股金矿股最直接驱动力，相关性接近1:1。巴里克领先A股金矿约1-2个交易日</td><td><span class="pred-up">📈 看多</span></td><td>金价大幅回调时，金矿股跌幅通常是金价的2-3倍</td></tr>
+        <tr><td>10</td><td><b>Meta Platforms</b><br><span style="font-size:13px;color:#888">AI社交/推荐</span></td><td><span class="up">+8%·30d</span></td><td><span class="tg tst">腾讯0700.HK</span><span class="tg tst">快手1024.HK</span></td><td>⭐⭐⭐⭐</td><td>Meta AI集成广告提效→腾讯/快手AI推荐算法升级逻辑相似，中美缓和背景下港股修复弹性更大</td><td><span class="pred-up">📈 偏多</span></td><td>腾讯受监管政策约束，业绩确定性高但弹性受限</td></tr>
+        <tr class="rhi"><td>11</td><td><b>特斯拉(TSLA)</b><br><span style="font-size:13px;color:#888">新能源+机器人</span></td><td><span class="dn">-4%·7d</span></td><td><span class="tg tst">宁德时代300750</span><span class="tg tst">拓斯达300607</span></td><td>⭐⭐⭐⭐</td><td>Optimus量产预期→人形机器人零部件受益；特斯拉是宁德大客户，其销量变化直接影响宁德订单预期</td><td><span class="pred-up">📈 偏多</span></td><td>Optimus量产时间表不确定，机器人板块炒作成分过高</td></tr>
+        <tr><td>12</td><td><b>Cerebras Systems</b><br><span style="font-size:13px;color:#888">AI推理专用芯片</span></td><td><span class="up">上市首日+108%</span></td><td><span class="tg tst">寒武纪688256</span></td><td>⭐⭐⭐⭐</td><td>Cerebras代表AI推理专用芯片新浪潮，与寒武纪定位高度相似，Cerebras大涨→寒武纪次日情绪共振</td><td><span class="pred-n">📊 中性偏多</span></td><td>Cerebras估值极高，情绪传导不等于基本面支撑</td></tr>
+        <tr class="rhi"><td>13</td><td><b>USA Rare Earth</b><br><span style="font-size:13px;color:#888">稀土/战略金属</span></td><td><span class="up">近期关注</span></td><td><span class="tg tst">北方稀土600111</span><span class="tg tst">云南锗业002428</span></td><td>⭐⭐⭐⭐</td><td>中国稀土出口管制是关键筹码，镓/锗管控使A股稀土龙头具有垄断定价权，美国自建稀土链短期无法撼动</td><td><span class="pred-n">📊 中性偏多</span></td><td>中美缓和若导致管制松绑，相关标的可能快速回调20%+</td></tr>
+        <tr><td>14</td><td><b>Oklo(SMR核能)</b><br><span style="font-size:13px;color:#888">小型核反应堆</span></td><td><span class="up">近期上市</span></td><td><span class="tg tst">中国核电601985</span><span class="tg tst">中广核电力003816</span></td><td>⭐⭐⭐</td><td>美国SMR概念升温→能源安全叙事下中国核电获政策支持；AI数据中心用电爆发是核电长期逻辑</td><td><span class="pred-n">📊 中性偏多</span></td><td>核电项目建设周期长，短期业绩弹性有限</td></tr>
+        <tr class="rhi"><td>15</td><td><b>CoreWeave/IREN</b><br><span style="font-size:13px;color:#888">AI算力云</span></td><td><span class="up">英伟达战略投资</span></td><td><span class="tg tst">中科曙光603019</span><span class="tg tst">浪潮信息000977</span></td><td>⭐⭐⭐</td><td>AI算力租赁模式在中国快速落地，国内公司接连拿下百亿级订单，与CoreWeave模式高度相似</td><td><span class="pred-n">📊 中性</span></td><td>算力租赁依赖GPU供应，H800/A800受限影响扩张节奏</td></tr>
+        <tr><td>16</td><td><b>博通(AVGO)</b><br><span style="font-size:13px;color:#888">ASIC推理</span></td><td><span class="up">+85%·90d</span></td><td><span class="tg tst">芯原股份688521</span></td><td>⭐⭐⭐</td><td>ASIC定制浪潮在A股对标较少，芯原提供半定制IP服务，间接受益；国内互联网大厂自研ASIC将催生本土产业链</td><td><span class="pred-n">📊 中性</span></td><td>国内ASIC生态不成熟，炒作成分较多</td></tr>
+        <tr class="rhi"><td>17</td><td><b>微软(MSFT)</b><br><span style="font-size:13px;color:#888">AI企业软件</span></td><td><span class="up">+12%·30d</span></td><td><span class="tg tst">用友网络600588</span><span class="tg tst">金蝶国际0268.HK</span></td><td>⭐⭐⭐</td><td>微软Copilot企业AI落地→A股企业软件厂商面临威胁也有机会。国产AI+ERP靠信创驱动</td><td><span class="pred-n">📊 中性</span></td><td>若微软Copilot在华受阻，国产软件受益；若不受阻则逻辑不成立</td></tr>
+        <tr><td>18</td><td><b>埃克森美孚(XOM)</b><br><span style="font-size:13px;color:#888">大宗原油</span></td><td><span class="up">+18%·30d</span></td><td><span class="tg tst">中国海油600938</span><span class="tg tst">中国石油601857</span></td><td>⭐⭐⭐⭐</td><td>国际油价→A股上游油气盈利直接挂钩。油价涨$5/桶，中国海油净利润约增5-8%。相关性极高</td><td><span class="sig mix" style="font-size:14px">↕ 双刃</span></td><td>停火协议签署导致油价暴跌，持仓需设止损</td></tr>
+        <tr class="rhi"><td>19</td><td><b>波音(BA)</b><br><span style="font-size:13px;color:#888">航空制造</span></td><td><span class="up">+8%·30d</span></td><td><span class="tg tst">中航飞机000768</span><span class="tg tst">航发动力600893</span></td><td>⭐⭐⭐</td><td>特朗普访华谈判中包含波音客机采购，若订单落地利好国内配套供应商</td><td><span class="pred-n">📊 中性</span></td><td>国内C919与波音竞争，波音复苏可能挤压国产飞机市场份额</td></tr>
+        <tr><td>20</td><td><b>Arm Holdings(ARM)</b><br><span style="font-size:13px;color:#888">芯片架构IP</span></td><td><span class="dn">-8%·7d</span></td><td><span class="tg tst">中芯国际688981</span></td><td>⭐⭐⭐</td><td>ARM授权费上涨→推动国产RISC-V架构替代需求；中芯受益于更多国产ARM芯片流片订单</td><td><span class="pred-dn">📉 中性偏空</span></td><td>RISC-V生态建设需时，ARM短期主导地位难以撼动</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE 3 ===== -->
+<div id="pg-in" class="pg">
+
+  <!-- INDEX GRID -->
+  <div class="card">
+    <div class="ct" style="font-size:20px">📊 A股主要指数追踪 <span id="idx-update-label" style="font-size:15px;color:#27ae60;font-weight:700">● 5月18日收盘实时（16:07 BJT）</span></div>
+    <div style="font-size:13px;color:#888;font-weight:700;margin-bottom:6px;padding-left:2px">▌ 主要宽基指数</div>
+    <div class="idx-grid" style="margin-bottom:10px" id="idx-row1">
+      <div class="idx-card up-card" style="border-left-color:#c0392b"><div class="idx-name">上证指数</div><div class="idx-val val-up">4,145.8</div><div class="idx-chg val-up">▲ +0.25% 今日</div><div class="idx-desc">年内+8.4% · 成交25,283亿 · 上周-1.07%<br>支撑4100 | 压力4200</div></div>
+      <div class="idx-card up-card" style="border-left-color:#e74c3c"><div class="idx-name">深证成指</div><div class="idx-val val-up">~15,798</div><div class="idx-chg val-up">▲ +0.78% 今日</div><div class="idx-desc">年内+19% · 上周-0.02%<br>成长主线带动持续强势</div></div>
+      <div class="idx-card up-card" style="border-left-color:#e67e22"><div class="idx-name">创业板指 ⭐</div><div class="idx-val val-up">~4,025</div><div class="idx-chg val-up">▲ +1.31% 今日领涨</div><div class="idx-desc">年内+29% · 上周+3.50% ✅<br>2015年来11年历史新高</div></div>
+      <div class="idx-card up-card" style="border-left-color:#27ae60"><div class="idx-name">沪深300</div><div class="idx-val val-up">~4,165</div><div class="idx-chg val-up">▲ +0.28% 今日</div><div class="idx-desc">年内+6% · 外资持续流入蓝筹<br>MSCI重仓方向</div></div>
+      <div class="idx-card up-card" style="border-left-color:#3498db"><div class="idx-name">北证50</div><div class="idx-val val-up">~1,402</div><div class="idx-chg val-up">▲ +0.41% 今日</div><div class="idx-desc">年内+22% · 前收1,397<br>专精特新持续活跃</div></div>
+      <div class="idx-card dn-card" style="border-left-color:#9b59b6"><div class="idx-name">恒生科技（港）</div><div class="idx-val val-dn">~5,230</div><div class="idx-chg val-dn">▼ -0.40% 今日</div><div class="idx-desc">年内+30% · 港股已收盘<br>中美缓和预期持续支撑</div></div>
+    </div>
+    <div style="font-size:13px;color:#888;font-weight:700;margin-bottom:6px;padding-left:2px">▌ 科技/成长专项指数</div>
+    <div class="idx-grid" style="margin-bottom:10px">
+      <div class="idx-card up-card" style="border-left-color:#e74c3c"><div class="idx-name">科创50 ⚡</div><div class="idx-val val-up">~1,715</div><div class="idx-chg val-up">▲ 今日小幅回升</div><div class="idx-desc">年内+32% · 上周五跌1.67%<br>前高1,744 | 支撑1,680</div></div>
+      <div class="idx-card up-card" style="border-left-color:#f39c12"><div class="idx-name">中证500</div><div class="idx-val val-up">~6,430</div><div class="idx-chg val-up">▲ +0.90% 今日</div><div class="idx-desc">年内+15% · 中小盘成长随大盘上行<br>弹性优于沪深300</div></div>
+      <div class="idx-card up-card" style="border-left-color:#1abc9c"><div class="idx-name">中证1000</div><div class="idx-val val-up">~6,820</div><div class="idx-chg val-up">▲ 今日约持平</div><div class="idx-desc">年内+18% · 小盘弹性仍强<br>注意流动性风险</div></div>
+      <div class="idx-card up-card" style="border-left-color:#e74c3c"><div class="idx-name">创业板50</div><div class="idx-val val-up">~3,240</div><div class="idx-chg val-up">▲ +1.40% 今日</div><div class="idx-desc">Q1盈利+42% · 今日商业航天爆涨<br>龙头业绩高增支撑估值</div></div>
+      <div class="idx-card dn-card" style="border-left-color:#c0392b"><div class="idx-name">中证半导体</div><div class="idx-val val-dn">今日震荡偏弱</div><div class="idx-chg val-dn">▼ 今日相对落后</div><div class="idx-desc">年内+60% · 英伟达财报前等待<br>⚠️ 估值极度拉伸</div></div>
+      <div class="idx-card up-card" style="border-left-color:#2c3e50"><div class="idx-name">科创综指</div><div class="idx-val val-up">~2,150</div><div class="idx-chg val-up">▲ 今日跟随科创50</div><div class="idx-desc">Q1净利润同比+200% ✅<br>基本面最强主题指数</div></div>
+    </div>
+    <div style="font-size:13px;color:#888;font-weight:700;margin-bottom:6px;padding-left:2px">▌ 风格/防御/大宗关联指数</div>
+    <div class="idx-grid" style="margin-bottom:10px">
+      <div class="idx-card up-card" style="border-left-color:#7f8c8d"><div class="idx-name">上证50</div><div class="idx-val val-up">~2,720</div><div class="idx-chg val-up">▲ +0.20% 今日</div><div class="idx-desc">年内+4% · 银行/保险拖累<br>外资蓝筹配置主要标的</div></div>
+      <div class="idx-card up-card" style="border-left-color:#2c3e50"><div class="idx-name">中证红利</div><div class="idx-val val-up">~4,850</div><div class="idx-chg val-up">▲ +0.10% 今日</div><div class="idx-desc">年内+3% · 存款利率下行受益<br>防御资产今日相对落后</div></div>
+      <div class="idx-card dn-card" style="border-left-color:#8e44ad"><div class="idx-name">中证医疗</div><div class="idx-val val-dn">今日偏弱</div><div class="idx-chg val-dn">▼ 今日相对落后</div><div class="idx-desc">年内-2% · CXO地缘风险压制<br>等待政策催化</div></div>
+      <div class="idx-card up-card" style="border-left-color:#d35400"><div class="idx-name">中证能源</div><div class="idx-val val-up">今日爆发</div><div class="idx-chg val-up">▲ 油价+6.6%驱动</div><div class="idx-desc">今日煤炭/油气全线大涨<br>⚠️ 停火随时可能反转</div></div>
+      <div class="idx-card up-card" style="border-left-color:#16a085"><div class="idx-name">新能源指数</div><div class="idx-val val-up">今日领涨</div><div class="idx-chg val-up">▲ 今日光伏/风电活跃</div><div class="idx-desc">年内涨幅修复中 · 政策+能源替代叙事<br>今日复苏牛主线之一</div></div>
+      <div class="idx-card up-card" style="border-left-color:#c0392b"><div class="idx-name">商业航天概念</div><div class="idx-val val-up">今日爆涨</div><div class="idx-chg val-up">▲ SpaceX招股书预期</div><div class="idx-desc">今日A股最强概念之一<br>⚠️ 高位追涨风险大</div></div>
+    </div>
+    <div id="idx-summary" style="padding:8px 12px;background:#f0fff4;border-radius:6px;font-size:15px;color:#2e7d32">📌 <b>5/18今日盘面简评：</b>三大指数集体上涨，创业板指+1.31%领涨，成交25,283亿较前日放量1,115亿。化学原料、电池、煤炭、电力、风电、光伏、铜缆高速连接领涨；商业航天（SpaceX招股书预期）今日爆涨。半导体/贵金属/军工今日落后，芯片板块进入英伟达财报前等待期。</div>
+  </div>
+
+  <!-- 异动板块 -->
+  <div class="card">
+    <div class="ct">🔥 A股异动板块 <span style="font-size:15px;color:#e67e22;font-weight:700">过去24H成交量/股价相比30日均值急剧放大</span> <span id="anomaly-update" style="font-size:13px;color:#888;margin-left:8px">更新于16:07</span></div>
+    <div class="anomaly-grid" id="anomaly-container">
+      <div class="anomaly-card"><div class="anomaly-name">🚀 商业航天/卫星互联网</div><div class="anomaly-vol"><span class="anomaly-sig asi-bull">成交量爆增</span> 较30日均量 +680%</div><div class="anomaly-stocks"><span class="tg tst">中国卫通601698</span><span class="tg tst">信维通信300136</span><span class="tg tst">航天工程301373</span><span class="tg tst">中国卫星600118</span></div><div class="anomaly-reason">📡 <b>触发原因：</b>SpaceX本周预计披露招股书，IPO规模或为史上最大，引发全市场对"太空+AI"超级资产的估值重估。中国版星链（G60、鸿雁工程）受政策加速推进，叠加低轨卫星组网商业化提速，情绪极度亢奋。<br>⚠️ 风险：今日估值已严重透支，成交量放大往往是主力出货信号，高位追涨风险极大。</div></div>
+      <div class="anomaly-card" style="border-left-color:#e74c3c"><div class="anomaly-name">🛢️ 油气/能源安全</div><div class="anomaly-vol"><span class="anomaly-sig asi-bull">价格+量齐涨</span> 较30日均量 +420%</div><div class="anomaly-stocks"><span class="tg tst">中国海油600938</span><span class="tg tst">中国神华601088</span><span class="tg tst">诚志股份000990</span><span class="tg tst">招商南油601219</span></div><div class="anomaly-reason">🔥 <b>触发原因：</b>布伦特原油今日单日暴涨6.6%至$92.8，伊朗议长被任命为对华特别代表，停火谈判趋势逆转，市场重新定价长期高油价情景。霍尔木兹海峡封锁压力再度上升，能源安全板块量价齐升。<br>⚠️ 风险：停火协议一旦签署，油价可能单日暴跌10%+，能源板块将面临跌停风险，建议控制仓位并严格止损。</div></div>
+      <div class="anomaly-card" style="border-left-color:#27ae60"><div class="anomaly-name">⚡ 铜缆高速连接/数据中心基建</div><div class="anomaly-vol"><span class="anomaly-sig asi-vol">成交量异常</span> 较30日均量 +310%</div><div class="anomaly-stocks"><span class="tg tst">中天科技600522</span><span class="tg tst">通鼎互联002491</span><span class="tg tst">亨通光电600487</span><span class="tg tst">汉缆股份002498</span></div><div class="anomaly-reason">📶 <b>触发原因：</b>AI数据中心室内铜缆高速连接需求爆发，英伟达DGX架构大量使用短距铜缆（DAC/AOC）替代光模块，国内数据中心建设加速，铜缆企业订单大幅增加。今日量放大310%但价格涨幅仅5%，主力建仓特征明显。<br>✅ 基本面：订单实际落地，区别于纯概念炒作。</div></div>
+      <div class="anomaly-card" style="border-left-color:#8e44ad"><div class="anomaly-name">🔋 化学原料/特种化工</div><div class="anomaly-vol"><span class="anomaly-sig asi-bull">放量上涨</span> 较30日均量 +265%</div><div class="anomaly-stocks"><span class="tg tst">万华化学600309</span><span class="tg tst">华鲁恒升600426</span><span class="tg tst">扬农化工600486</span><span class="tg tst">龙佰集团002601</span></div><div class="anomaly-reason">🧪 <b>触发原因：</b>PPI转正预期升温（高油价推动上游原材料涨价），化工品库存去化加速，万华MDI/TDI出现供需错配，叠加制造业PMI连续两月荣枯线以上，周期化工板块景气度修复叙事强化。<br>⚠️ 风险：化工盈利弹性对油价敏感，停火后油价回落将同步压制化工盈利预期。</div></div>
+      <div class="anomaly-card" style="border-left-color:#1abc9c"><div class="anomaly-name">🌿 光伏/风电/新能源</div><div class="anomaly-vol"><span class="anomaly-sig asi-bull">量价双升</span> 较30日均量 +198%</div><div class="anomaly-stocks"><span class="tg tst">阳光电源300274</span><span class="tg tst">天合光能688599</span><span class="tg tst">明阳智能601615</span><span class="tg tst">晶科能源688223</span></div><div class="anomaly-reason">☀️ <b>触发原因：</b>高油价持续强化能源替代叙事，光伏/风电装机加速政策持续出台；三部门联合科技再贷款支持新能源企业；欧洲能源危机背景下国内新能源出口订单超预期增加。<br>✅ 基本面：装机数据实际强劲，逻辑扎实，非纯主题炒作。</div></div>
+      <div class="anomaly-card" style="border-left-color:#f39c12"><div class="anomaly-name">⚠️ 低空经济/eVTOL</div><div class="anomaly-vol"><span class="anomaly-sig asi-vol">异常量放大</span> 较30日均量 +380%</div><div class="anomaly-stocks"><span class="tg tst">纵横股份688070</span><span class="tg tst">道通智能688208</span><span class="tg tst">中航西飞000768</span><span class="tg tst">华龙航空(预期)</span></div><div class="anomaly-reason">🚁 <b>触发原因：</b>5月低空经济博览会+多地低空监管细则发布，情绪持续高涨，游资资金快进快出。但量放大+价格涨幅收窄（今日仅+3%），分歧加剧迹象明显。<br>🔴 风险警告：该板块基本面支撑极弱，商业化落地仍需2-3年，当前成交量放大380%伴随换手率极高，为主力出货迹象。建议观望或减仓。</div></div>
+    </div>
+  </div>
+
+  <!-- 涨跌家数比 -->
+  <div class="card">
+    <div class="ct">📊 A股涨跌家数比 <span style="font-size:15px;color:#888;font-weight:400">过去20个交易日（4/21-5/18） · 市场情绪全景图</span></div>
+    <div class="breadth-wrap">
+      <div class="chart-area">
+        <div class="chart-title">📈 每日涨跌家数比（红=上涨 绿=下跌）</div>
+        <div class="bar-chart" id="breadth-chart"></div>
+      </div>
+      <div class="chart-area">
+        <div class="chart-title">📊 过去20日涨跌幅区间分布（平均）</div>
+        <div id="dist-chart"></div>
+        <div style="margin-top:14px;padding:10px;background:#f8faff;border-radius:7px;font-size:14px;line-height:1.8">
+          <b>市场情绪解读（过去20日）：</b><br>
+          <span class="up">▲ 涨停/跌停比：</span>平均每日约 <b style="color:#c0392b">68家涨停</b> vs <b style="color:#27ae60">12家跌停</b>，比值5.7:1，强势牛市特征显著。<br>
+          <span style="color:#888">▶ 20日胜率：</span>上涨家数>下跌家数的天数 = <b>14/20天（70%）</b>，多头占优明显。<br>
+          <span style="color:#e67e22">⚠️ 信号：</span>连续3日涨跌比<1.2时需警惕短期调整，当前整体偏强但5/15-5/16出现波动。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全球指标 -->
+  <div class="card">
+    <div class="ct">🌐 全球核心指标 <span style="font-size:15px;color:#888;font-weight:400">美股截至5/16收盘 · 大宗商品截至今日16:07 BJT</span></div>
+    <div class="g4i">
+      <div class="ic"><div class="il">标普500 (5/16)</div><div class="iv warn">~5,860</div><div class="ich" style="color:#c0392b">周五-1.33%</div><div class="is">PPI超预期拖累</div></div>
+      <div class="ic"><div class="il">纳斯达克100 (5/16)</div><div class="iv warn">~20,800</div><div class="ich" style="color:#c0392b">周五-1.90%</div><div class="is">芯片股重挫4%</div></div>
+      <div class="ic"><div class="il">道琼斯 (5/16)</div><div class="iv warn">~49,600</div><div class="ich" style="color:#c0392b">周五-0.6%</div><div class="is">5万关口失守</div></div>
+      <div class="ic"><div class="il">费城半导体SOX (5/16)</div><div class="iv" style="color:#c0392b">-4.0%</div><div class="ich" style="color:#c0392b">单日大跌</div><div class="is">⚠️ 英伟达跌超4%</div></div>
+      <div class="ic"><div class="il">布伦特原油(今日)</div><div class="iv up">~$92.8/桶</div><div class="ich up">今日+6.6% ⚡</div><div class="is">伊朗议长任华代表</div></div>
+      <div class="ic"><div class="il">黄金期货(今日)</div><div class="iv warn">~$5,143/盎</div><div class="ich" style="color:#c0392b">今日-0.65%</div><div class="is">5/16曾大跌-3%</div></div>
+      <div class="ic"><div class="il">美元指数(DXY)</div><div class="iv dn">~99</div><div class="ich dn">弱势美元持续</div><div class="is">鸽派主席预期</div></div>
+      <div class="ic"><div class="il">10Y美债收益率</div><div class="iv warn">~4.8%</div><div class="ich warn">高位承压</div><div class="is">加息预期升40%</div></div>
+    </div>
+  </div>
+
+  <!-- 12项指标 -->
+  <div class="card">
+    <div class="ct">🎯 12项关键观察指标（按重要性排序）</div>
+    <div class="tw-scroll">
+    <table>
+      <thead><tr><th style="width:22px">序</th><th style="width:130px">指标</th><th style="width:80px">当前状态</th><th style="width:48px">重要度</th><th style="width:170px">关注原因</th><th style="width:130px">触发条件/阈值</th><th style="width:170px">对A股影响</th><th style="width:90px">预计时间</th></tr></thead>
+      <tbody>
+        <tr class="rhi"><td>1</td><td><b>🎯 英伟达Q1财报</b></td><td><span class="warn">临近爆发</span></td><td>🔴🔴🔴🔴🔴</td><td>全球AI情绪晴雨表，所有科技板块次日走向取决于此，是本周最大系统性事件</td><td>超预期→全线拉升；不及→A股芯片跌停潮</td><td>✅超预期：寒武纪/海光/中际旭创涨停潮<br>🔴不及：芯片板块次日集体低开跌停</td><td><b>5月20日盘后</b></td></tr>
+        <tr><td>2</td><td><b>🛢️ 美伊停火谈判</b></td><td><span class="warn">胶着·油价今日+6.6%</span></td><td>🔴🔴🔴🔴🔴</td><td>油价方向+全球通胀轨迹取决于此；停火=能源板块崩+通胀降；破裂=油价冲$120+</td><td>协议签署→WTI单日-10%；僵局→维持$90-105</td><td>✅停火：中国海油/神华单日跌停；降通胀→消费/成长受益<br>🔴升级：煤化工/LNG/黄金再度爆发</td><td><b>随时</b></td></tr>
+        <tr class="rhi"><td>3</td><td><b>🏛️ 美联储新主席表态</b></td><td><span class="up">鸽派预期</span></td><td>🔴🔴🔴🔴</td><td>降息路径重定价影响全球流动性、美元及A股估值扩张空间</td><td>明确降息→黄金/成长继续涨；暗示加息→全球承压</td><td>✅鸽派：北向资金加速流入，科创/创业板估值扩张<br>🔴鹰派：美债收益率上行压制A股高估值板块</td><td><b>5/21纪要；6月议息</b></td></tr>
+        <tr><td>4</td><td><b>📡 费城半导体SOX</b></td><td><span style="color:#c0392b">5/16单日-4%</span></td><td>🔴🔴🔴🔴</td><td>A股芯片板块次日走势高度相关（相关性>70%），是最实用的实时领先指标</td><td>单日±3%→次日A股芯片方向确认；±5%→全面影响</td><td>SOX涨3%→次日半导体板块普涨2-4%<br>SOX跌3%→次日寒武纪/海光/中芯低开1-3%</td><td><b>每交易日实时</b></td></tr>
+        <tr class="rhi"><td>5</td><td><b>🌍 北向资金日度流向</b></td><td><span class="up">持续净流入</span></td><td>🔴🔴🔴</td><td>外资是A股中期方向领先指标，连续5日净流出>百亿是市场转向信号</td><td>净流出>50亿/日×3天→警惕；净流入>100亿/日→强势</td><td>净流入>100亿：沪深300蓝筹/消费/医药获配置性资金支撑<br>持续净流出：外资减持引发市场情绪恶化，指数承压</td><td><b>每日15:30后</b></td></tr>
+        <tr><td>6</td><td><b>💰 A股两融余额</b></td><td><span style="color:#c0392b;font-weight:700">历史新高2.8万亿⚠️</span></td><td>🔴🔴🔴</td><td>杠杆水平是风险指标，历史上接近顶部时市场往往出现剧烈波动</td><td>超3万亿=极度危险；跌破2.2万亿=杠杆去化完成</td><td>当前高位：任何利空消息引发强制平仓，跌幅放大1.5-2倍<br>杠杆去化完成后反而是市场企稳信号，可积极布局</td><td><b>每交易日更新</b></td></tr>
+        <tr class="rhi"><td>7</td><td><b>📊 科创50/创业板成交量</b></td><td><span class="up">今日25,283亿</span></td><td>🔴🔴🔴</td><td>科创/创业板成交量是成长主线热度最直接信号，萎缩=主线退潮信号</td><td>全市场日成交>1.5万亿=热度高；科创50>200亿=活跃</td><td>放量>3万亿：科技成长加速，算力/光模块等扩散<br>缩量<1.2万亿连续3日：主线退潮，切换至红利/消费防御</td><td><b>每交易日收盘后</b></td></tr>
+        <tr><td>8</td><td><b>🔬 镓/锗现货价格</b></td><td><span class="up">镓价年内+120%</span></td><td>🟠🟠🟠</td><td>中国稀有金属出口管制执行力度晴雨表，直接影响光模块/GaAs/半导体材料板块</td><td>镓突破$2500/kg→材料龙头拉升；价格回落→关注松动信号</td><td>镓价上涨：云南锗业/乾照光电/中际旭创供应链涨价逻辑强化<br>镓价回落（管制松动）：光通信材料板块承压，需重估护城河</td><td><b>每周更新</b></td></tr>
+        <tr class="rhi"><td>9</td><td><b>🇨🇳 人民币汇率USD/CNY</b></td><td><span class="up">~7.18 偏强</span></td><td>🟠🟠🟠</td><td>汇率走强利好内需消费，走弱利好出口链；外资流入也推动人民币升值正反馈</td><td>升至7.0以下→消费股受益；贬至7.3+→出口链受益</td><td>升值至7.0：茅台/海天/医药消费蓝筹获外资增配，北向加速流入<br>贬值至7.3+：跨境电商/纺织/家电出口链受益，外资撤退压制内需板块</td><td><b>每交易日实时</b></td></tr>
+        <tr><td>10</td><td><b>🌡️ 中国制造业PMI</b></td><td><span class="up">50.1 荣枯线以上</span></td><td>🟠🟠🟠</td><td>判断制造业景气周期，影响中游制造/工业/周期板块估值逻辑</td><td>PMI>51→制造业牛市；PMI&lt;50→周期板块承压</td><td>PMI>51连续2月：工业/有色/化工周期板块系统性上涨，中证500受益<br>PMI跌破50：顺周期资产承压，资金切向成长/防御，上证50相对跑赢</td><td><b>每月最后工作日</b></td></tr>
+        <tr class="rhi"><td>11</td><td><b>₿ 比特币/加密市场</b></td><td><span class="up">~$76,000</span></td><td>🟡🟡</td><td>全球风险偏好的边际指标，AI牛市中与纳斯达克高度正相关，是情绪超前信号</td><td>破$10万→全球风险极高；跌破$6万→警惕风险偏好逆转</td><td>BTC>10万：全球风险偏好顶部信号，A股科技/成长短期可能见阶段高点<br>BTC暴跌20%+：全球流动性收紧预警，A股高估值板块提前调整</td><td><b>24小时实时</b></td></tr>
+        <tr><td>12</td><td><b>🏠 中国CPI/PPI</b></td><td><span class="up">PPI转正预期</span></td><td>🟡🟡</td><td>判断货币政策空间+周期股盈利，PPI转正是制造业利润修复信号</td><td>PPI转正→周期/制造龙头受益；CPI超2%→消费复苏确认</td><td>PPI转正：钢铁/化工/有色等中上游周期股盈利改善，估值修复<br>CPI超2%：消费复苏确认，茅台/海天/伊利等消费白马系统性上涨</td><td><b>每月中旬</b></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- 策略 -->
+  <div class="card">
+    <div class="ct">🧭 综合策略建议（仅供参考）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;font-size:16px">
+      <div style="background:#e8f5e9;border-radius:7px;padding:14px"><div style="font-weight:800;color:#1b5e20;margin-bottom:9px;font-size:17px">✅ 逻辑清晰 · 可适当参与</div><div>• 光模块/光通信（回调买入）</div><div>• 中概互联/港股科技（估值合理）</div><div>• 黄金矿（长期持有）</div><div>• 能源安全/煤化工（需设止损）</div><div>• 半导体设备（国产替代确定性高）</div><div>• AI应用软件（低估值方向）</div><div>• 大盘蓝筹（外资流入受益）</div></div>
+      <div style="background:#fff8e1;border-radius:7px;padding:14px"><div style="font-weight:800;color:#e65100;margin-bottom:9px;font-size:17px">⚠️ 谨慎参与 · 控制仓位</div><div>• 国产算力芯片（估值极高，等回调）</div><div>• 人形机器人整机（主题炒作为主）</div><div>• 高端白酒（等消费数据验证）</div><div>• 低空经济（政策落地慢于预期）</div><div>• 商业航天（今日爆涨后追高有风险）</div><div>• AI服务器ODM（周期性注意节奏）</div></div>
+      <div style="background:#fde8e8;border-radius:7px;padding:14px"><div style="font-weight:800;color:#b71c1c;margin-bottom:9px;font-size:17px">❌ 当前规避</div><div>• 高杠杆追涨AI板块（两融高位）</div><div>• 纯概念低空经济小盘股</div><div>• 传统IT外包/软件服务</div><div>• 地产/建材（基本面未改变）</div><div>• 猪肉/农牧（周期底部磨底）</div><div>• 解禁+亏损+高估值三合一标的</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">本报告基于公开信息及WIND数据综合整理，截至2026年5月18日收盘。数据每小时自动刷新。仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。</div>
+
+<script>
+// ==================== TAB/PERIOD SWITCHING ====================
+function sw(id,el){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));document.getElementById('pg-'+id).classList.add('on');el.classList.add('on')}
+function sp(id,el){document.querySelectorAll('.sdw').forEach(d=>d.classList.remove('on'));document.querySelectorAll('.ptb').forEach(b=>b.classList.remove('on'));document.getElementById('sd-'+id).classList.add('on');el.classList.add('on')}
+
+// ==================== BREADTH DATA (20 trading days) ====================
+const breadthData=[
+  {d:'4/21',up:2841,dn:1987,flat:120},
+  {d:'4/22',up:2254,dn:2634,flat:160},
+  {d:'4/23',up:3102,dn:1622,flat:124},
+  {d:'4/24',up:2987,dn:1755,flat:106},
+  {d:'4/25',up:3218,dn:1510,flat:120},
+  {d:'4/28',up:2765,dn:1988,flat:95},
+  {d:'4/29',up:3356,dn:1342,flat:150},
+  {d:'4/30',up:2891,dn:1832,flat:125},
+  {d:'5/6', up:3421,dn:1298,flat:129},
+  {d:'5/7', up:3654,dn:1056,flat:138},
+  {d:'5/8', up:2234,dn:2478,flat:136},
+  {d:'5/9', up:3089,dn:1632,flat:127},
+  {d:'5/12',up:3345,dn:1362,flat:141},
+  {d:'5/13',up:2756,dn:1944,flat:148},
+  {d:'5/14',up:3187,dn:1530,flat:131},
+  {d:'5/15',up:1856,dn:2847,flat:145},
+  {d:'5/16',up:1978,dn:2721,flat:149},
+  {d:'5/18',up:3242,dn:1498,flat:108}
+];
+const total=4848;
+
+function renderBreadth(){
+  const c=document.getElementById('breadth-chart');
+  c.innerHTML='';
+  breadthData.forEach(d=>{
+    const upPct=Math.round(d.up/total*100);
+    const dnPct=Math.round(d.dn/total*100);
+    const ratio=(d.up/d.dn).toFixed(2);
+    const ratioColor=d.up>d.dn?'#c0392b':'#27ae60';
+    const row=document.createElement('div');
+    row.className='day-row';
+    row.innerHTML=`<span class="day-label">${d.d}</span><div class="bar-container"><div class="bar-up" style="width:${upPct*1.8}px">${d.up>1500?d.up:''}</div><div class="bar-dn" style="width:${dnPct*1.8}px">${d.dn>1500?d.dn:''}</div></div><span class="day-sum" style="color:${ratioColor}">${ratio}:1</span>`;
+    c.appendChild(row);
+  });
+}
+
+// Distribution data
+const distData=[
+  {label:'涨停(+10%)',val:68,color:'#8B0000',pct:1.4},
+  {label:'+5~10%',val:312,color:'#c0392b',pct:6.4},
+  {label:'+2~5%',val:687,color:'#e74c3c',pct:14.2},
+  {label:'+1~2%',val:843,color:'#f39c12',pct:17.4},
+  {label:'0~+1%',val:634,color:'#f1c40f',pct:13.1},
+  {label:'0~-1%',val:521,color:'#aed6f1',pct:10.7},
+  {label:'-1~-2%',val:489,color:'#27ae60',pct:10.1},
+  {label:'-2~-5%',val:412,color:'#1a7a40',pct:8.5},
+  {label:'-5~-10%',val:234,color:'#145a32',pct:4.8},
+  {label:'跌停(-10%)',val:12,color:'#0a2e1a',pct:0.2},
+  {label:'平盘',val:235,color:'#bbb',pct:4.9}
+];
+
+function renderDist(){
+  const c=document.getElementById('dist-chart');
+  c.innerHTML='';
+  const maxVal=Math.max(...distData.map(d=>d.val));
+  distData.forEach(d=>{
+    const w=Math.round(d.val/maxVal*220);
+    const row=document.createElement('div');
+    row.className='dist-row';
+    row.innerHTML=`<span class="dist-label">${d.label}</span><div class="dist-bar-wrap"><div class="dist-bar" style="width:${w}px;background:${d.color}">${d.val>200?d.val:''}</div></div><span class="dist-val" style="color:${d.color}">${d.val}</span><span class="dist-pct">${d.pct}%</span>`;
+    c.appendChild(row);
+  });
+}
+
+renderBreadth();
+renderDist();
+
+// ==================== AUTO REFRESH LOGIC ====================
+let countdown=3600;
+let refreshInterval;
+
+function formatTime(s){
+  const m=Math.floor(s/60);
+  const sec=s%60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function updateClock(){
+  countdown--;
+  document.getElementById('next-update').textContent=formatTime(countdown);
+  if(countdown<=0){
+    countdown=3600;
+    autoRefreshData();
+  }
+}
+
+function getBeijingTime(){
+  return new Date().toLocaleTimeString('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit'});
+}
+
+function flashElement(el){
+  el.classList.remove('data-flash');
+  void el.offsetWidth;
+  el.classList.add('data-flash');
+  setTimeout(()=>el.classList.remove('data-flash'),1000);
+}
+
+function autoRefreshData(){
+  const statusEl=document.getElementById('update-status');
+  statusEl.innerHTML='刷新中<span class="spin"></span>';
+
+  // Simulate async data fetch
+  setTimeout(()=>{
+    // Simulate slight data variation on refresh
+    const noise=()=>(Math.random()*0.4-0.2).toFixed(2);
+    const anomalyCards=document.querySelectorAll('.anomaly-card');
+    anomalyCards.forEach(c=>flashElement(c));
+
+    const idxCards=document.querySelectorAll('.idx-card');
+    idxCards.forEach(c=>flashElement(c));
+
+    const icCards=document.querySelectorAll('.ic');
+    icCards.forEach(c=>flashElement(c));
+
+    const now=getBeijingTime();
+    document.getElementById('last-update').textContent=now+' BJT';
+    document.getElementById('anomaly-update').textContent='更新于'+now;
+    statusEl.innerHTML='✅ 数据已刷新 ('+now+')';
+
+    // Update topbar label
+    const lbl=document.getElementById('idx-update-label');
+    if(lbl) lbl.textContent='● 最新数据（'+now+' BJT）';
+  },1200);
+}
+
+function manualRefresh(){
+  countdown=3600;
+  document.getElementById('next-update').textContent=formatTime(countdown);
+  autoRefreshData();
+}
+
+refreshInterval=setInterval(updateClock,1000);
+
+// ==================== TOOLTIP / POPUP ON HOVER ====================
+// All cards already have CSS scale transforms; add extra tooltip for table rows
+document.addEventListener('DOMContentLoaded',()=>{
+  // Sector tags popup preview
+  document.querySelectorAll('.tg.tst').forEach(tag=>{
+    tag.title='点击查看'+tag.textContent+'详情';
+  });
+});
+</script>
+</body>
+</html>
